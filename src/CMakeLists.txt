@@ -19,6 +19,7 @@ set(DEFAULT_INSTITUTES
     pclake       # The PCLake model - reference implementation
     pisces       # Pelagic Interactions Scheme for Carbon and Ecosystem Studies, https://doi.org/10.5194/gmd-8-2465-2015
     pml          # Plymouth Marine Laboratory, United Kingdom
+    rbins        # Royal Institute of Natural Sciences, Belgium
     selma        # Simple EcoLogical Model for the Aquatic - PROGNOS
     su           # Swansea University, United Kingdom
     uhh          # University of Hamburg, Germany

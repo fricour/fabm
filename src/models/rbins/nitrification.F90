@@ -42,15 +42,14 @@ contains
         _GET_(self%id_no3, no3)
         _GET_(self%id_no4, no4)
 
+        ! TODO add time step somewhere? + add make FABM aware of this nitrification, see github instructions
+
         ! Compute nitrification
         nitrif = self%nitriRate * nh4 * (self%o2/(self%o2+self%kso2))
 
         ! Send rates of change to FABM.
         _ADD_SOURCE_(self%id_no3,nitrif)
         _ADD_SOURCE_(self%id_nh4,-nitrif)
-
-        ! Send the value of diagnostic variables to FABM.
-        _SET_DIAGNOSTIC_(self%id_mu,mu)
 
         _LOOP_END_
   end subroutine do

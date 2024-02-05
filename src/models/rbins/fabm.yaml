@@ -1,0 +1,4 @@
+instances:
+  voet:
+    model: rbins/voet
+

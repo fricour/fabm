@@ -3,6 +3,7 @@ module rbins_model_library
    use fabm_types, only: type_base_model_factory, type_base_model
 
    ! Add use statements for new models here
+   use rbins_voet
 
    implicit none
 
@@ -25,6 +26,7 @@ contains
 
       select case (name)
          ! Add case statements for new models here
+         case ('voet'); allocate(type_rbins_voet::model)
       end select
 
    end subroutine create

@@ -23,8 +23,8 @@ contains
 
     call self%register_implemented_routines((/source_do/))
 
-    call self%get_parameter(self%k_f, 'k_f', 'day-1', 'fixation rate', default=0.2_rk)
-    call self%get_parameter(self%k_d, 'k_d', 'day-1', 'dissolution rate', default=0.3._rk)
+    call self%get_parameter(self%k_f, 'k_f', 'day-1', 'fixation rate', default=0.2_rk, scale_factor=1.0_rk/86400.0_rk)
+    call self%get_parameter(self%k_d, 'k_d', 'day-1', 'dissolution rate', default=0.3_rk, scale_factor=1.0_rk/86400.0_rk)
 
     call self%register_state_variable(self%id_p, 'p', 'mmolC m-3', 'particulate concentration', minimum=0.0_rk) 
     call self%register_state_variable(self%id_d, 'd', 'mmolC m-3', 'dissolved concentration', minimum=0.0_rk)

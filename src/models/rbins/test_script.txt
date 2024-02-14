@@ -1,0 +1,27 @@
+import scipy.integrate
+from matplotlib import pyplot
+import pyfabm
+
+# Create model (loads fabm.yaml)
+model = pyfabm.Model('fabm.yaml')
+
+# Configure the environment
+# Note: the set of environmental dependencies depends on the loaded biogeochemical model.
+model.cell_thickness = 10.0
+
+# Verify the model is ready to be used
+assert model.start(), "One or more model dependencies have not been fulfilled."
+
+# Time derivative
+def dy(t, y):
+    model.state[:] = y
+    return model.getRates()
+
+# Time-integrate over one year (note: FABM's internal time unit is seconds!)
+result = scipy.integrate.solve_ivp(dy, [0.0, 50.0 * 86400], model.state)
+
+# Plot results
+fig, ax = pyplot.subplots()
+ax.plot(result.t / 86400, result.y.T)
+ax.legend([variable.path for variable in model.state_variables])
+pyplot.show()

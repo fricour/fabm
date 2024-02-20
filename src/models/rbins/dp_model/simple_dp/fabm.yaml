@@ -1,0 +1,7 @@
+instances:
+  voet:
+    model: rbins/voet
+    initialization:
+      p: 200 # concentration (mmolC m-3)
+      d: 100 # concentration (mmolC m-3)
+

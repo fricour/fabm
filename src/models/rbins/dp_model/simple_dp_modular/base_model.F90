@@ -34,10 +34,11 @@ contains
     class (type_rbins_base_model), intent(in) :: self
     _DECLARE_ARGUMENTS_DO_
 
-    real(rk) :: d
+    real(rk) :: p, d
 
     _LOOP_BEGIN_
         ! Obtain concentration of nutrients
+        _GET_(self%id_p, p)
         _GET_(self%id_d, d)
 
         ! Send rates of change to FABM.

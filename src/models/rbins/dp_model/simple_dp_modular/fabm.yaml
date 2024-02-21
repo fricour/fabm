@@ -1,0 +1,13 @@
+# see inspiration for coupling ("modularization") here: https://github.com/BoldingBruggeman/fabm-pisces/blob/master/testcases/fabm.yaml
+instances:
+  base_model:
+    model: rbins/base_model
+    initialization:
+      p: 200 # concentration (mmolC m-3)
+      d: 100 # concentration (mmolC m-3)
+  dissolution:
+    model: rbins/dissolution
+    coupling:
+      p: base_model/p
+      d: base_model/d
+

@@ -35,11 +35,12 @@ contains
     class (type_rbins_dissolution), intent(in) :: self
     _DECLARE_ARGUMENTS_DO_
 
-    real(rk) :: p
+    real(rk) :: p, d
 
     _LOOP_BEGIN_
         ! Obtain concentration of nutrients
         _GET_(self%id_p, p)
+        _GET_(self%id_d, d)
 
         ! Send rates of change to FABM.
         _ADD_SOURCE_(self%id_p, -self%k_d*p)

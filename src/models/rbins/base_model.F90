@@ -9,11 +9,14 @@ module rbins_base_model
 
    type, extends(type_base_model), public :: type_rbins_base_model ! it is a coincidence that I chose the same base_model as the type_base_model but it's not at all related...
       type (type_state_variable_id) :: id_p, id_d 
+      type (type_bottom_state_variable_id) :: id_p_benthos
       type (type_dependency_id) :: id_I_0
-      real(rk) :: k_p, k_p_par_n
+      real(rk) :: k_p, k_p_par_n, reminpart, burialpart, w_p
    contains      
       procedure :: initialize
       procedure :: do
+      procedure :: do_bottom
+      procedure :: do_surface
    end type
 
 contains
@@ -24,17 +27,19 @@ contains
 
     real(rk), parameter :: secs_per_day = 86400.0_rk
     real(rk), parameter :: hours_per_day = 3600.0_rk 
-    real(rk) :: w_p ! sinking speed
 
-    ! parameters
+    ! parameters (always put a default value)
     call self%get_parameter(self%k_p, 'k_p', 'h-1', 'precipitation rate', default=0.006_rk, scale_factor=1.0_rk/hours_per_day)
     call self%get_parameter(self%k_p_par_n, 'k_p_par_n', '[h-1/(mumol photons/m^2/s)]', 'linear PAR dependency of precipitation rate', default=0.00000176_rk, scale_factor=1.0_rk/hours_per_day)
-    call self%get_parameter(w_p, 'w_p', 'm day-1', 'vertical velocity (<0 for sinking)', default=-1.0_rk, scale_factor=1.0_rk/secs_per_day)
+    call self%get_parameter(self%w_p, 'w_p', 'm day-1', 'vertical velocity (<0 for sinking)', default=-1.0_rk, scale_factor=1.0_rk/secs_per_day)
+    call self%get_parameter(self%reminpart, 'reminpart', 'day-1', default=0.1_rk, scale_factor=1.0_rk/secs_per_day)
+    call self%get_parameter(self%burialpart, 'burialpart', 'day-1', default=0.1_rk, scale_factor=1.0_rk/secs_per_day)
 
     ! state variables 
-    call self%register_state_variable(self%id_p, 'p', 'mmolC m-3', 'particulate concentration', initial_value=200.0_rk, minimum=0.0_rk, vertical_movement=w_p) 
-    call self%register_state_variable(self%id_d, 'd', 'mmolC m-3', 'dissolved concentration', minimum=0.0_rk)
-    
+    call self%register_state_variable(self%id_p, 'p', 'molC m-3', 'particulate concentration', initial_value=200.0_rk, minimum=0.0_rk, vertical_movement=self%w_p) 
+    call self%register_state_variable(self%id_d, 'd', 'molC m-3', 'dissolved concentration', minimum=0.0_rk)
+    call self%register_state_variable(self%id_p_benthos, 'p_benthos', 'molC m-2', 'benthic particulate concentration', initial_value=10.0_rk, minimum=0.0_rk)
+ 
     ! dependencies
     call self%register_dependency(self%id_I_0, standard_variables%downwelling_photosynthetic_radiative_flux) ! units in W/m^2 
   end subroutine initialize
@@ -52,11 +57,36 @@ contains
         _GET_(self%id_I_0, I_0)
 
         ! Send rates of change to FABM.
-        !_ADD_SOURCE_(self%id_p, (self%k_p*d + self%k_p_par_n*I_0)*d)
         _ADD_SOURCE_(self%id_p, (self%k_p + self%k_p_par_n*I_0*conversion_factor)*d) 
         _ADD_SOURCE_(self%id_d, -self%k_p*d)
 
     _LOOP_END_
   end subroutine do
+
+  subroutine do_bottom(self, _ARGUMENTS_DO_BOTTOM_)
+     class (type_rbins_base_model), intent(in) :: self
+     _DECLARE_ARGUMENTS_DO_BOTTOM_
+
+     real(rk) :: p_benthos, p
+
+     _BOTTOM_LOOP_BEGIN_
+        _GET_HORIZONTAL_(self%id_p_benthos, p_benthos)
+        _GET_(self%id_p, p)
+           
+        _ADD_BOTTOM_SOURCE_(self%id_p_benthos, -self%reminpart*p_benthos -self%burialpart*p_benthos + self%w_p*p) ! the last term impacts the content of the benthic state variable
+        _ADD_BOTTOM_FLUX_(self%id_p, -self%w_p*p) 
+        _ADD_BOTTOM_FLUX_(self%id_d, self%reminpart*p_benthos)
+ 
+     _BOTTOM_LOOP_END_
+  end subroutine do_bottom 
+
+  subroutine do_surface(self, _ARGUMENTS_DO_SURFACE_)
+     class (type_rbins_base_model), intent(in) :: self
+     _DECLARE_ARGUMENTS_DO_SURFACE_
+
+     _SURFACE_LOOP_BEGIN_
+     _SURFACE_LOOP_END_ 
+
+  end subroutine do_surface
 
 end module

@@ -5,9 +5,11 @@ instances:
     initialization:
       p: 200 # concentration (mmolC m-3)
       d: 100 # concentration (mmolC m-3)
+      p_benthos: 10 # concentration (mmolC m-2)
     parameters:
       w_p: -1.0 # sinking speed (m day-1), should be <0
       k_p: 0.006 # precipitation rate (h-1)
+      reminpart: 0.1 # remineralization rate for benthic particulate substance (day-1)
   dissolution:
     model: rbins/dissolution
     coupling:

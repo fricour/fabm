@@ -8,8 +8,9 @@ module rbins_base_model
    private
 
    type, extends(type_base_model), public :: type_rbins_base_model ! it is a coincidence that I chose the same base_model as the type_base_model but it's not at all related...
-      type (type_state_variable_id) :: id_p, id_d 
+      type (type_state_variable_id) :: id_p, id_d  
       type (type_bottom_state_variable_id) :: id_p_benthos
+      type (type_surface_state_variable_id) :: id_a, id_b 
       type (type_dependency_id) :: id_I_0
       real(rk) :: k_p, k_p_par_n, reminpart, burialpart, w_p
    contains      
@@ -39,6 +40,7 @@ contains
     call self%register_state_variable(self%id_p, 'p', 'molC m-3', 'particulate concentration', initial_value=200.0_rk, minimum=0.0_rk, vertical_movement=self%w_p) 
     call self%register_state_variable(self%id_d, 'd', 'molC m-3', 'dissolved concentration', minimum=0.0_rk)
     call self%register_state_variable(self%id_p_benthos, 'p_benthos', 'molC m-2', 'benthic particulate concentration', initial_value=10.0_rk, minimum=0.0_rk)
+    !call self%register_state_variable(self%id_o2, 'oxy', 'mol O2/m3', 'oxygen', initial_value=5.0_rk, minimum=0.0_rk)
  
     ! dependencies
     call self%register_dependency(self%id_I_0, standard_variables%downwelling_photosynthetic_radiative_flux) ! units in W/m^2 
@@ -84,7 +86,16 @@ contains
      class (type_rbins_base_model), intent(in) :: self
      _DECLARE_ARGUMENTS_DO_SURFACE_
 
+     real(rk) :: d
+     real(rk), parameter :: airconc = 8.56_rk ! units in mol/m3
+     real(rk), parameter :: piston_velocity = 0.000005 ! units in m/s (low wind speed: 1-3 cm/h, moderate wind speed: 5-15 cm/h, high wind speed: 20-30 cm/h) -> conversion factor cm/hr = 2.78*10-6 m/s 
+     !real(rk), parameter :: secs_per_day = 86400.0_rk
+
      _SURFACE_LOOP_BEGIN_
+       _GET_(self%id_d, d)
+
+       _ADD_SURFACE_FLUX_(self%id_d, -piston_velocity*(d - airconc)) 
+ 
      _SURFACE_LOOP_END_ 
 
   end subroutine do_surface

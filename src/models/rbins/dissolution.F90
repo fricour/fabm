@@ -21,11 +21,11 @@ contains
     class (type_rbins_dissolution), intent(inout), target :: self
     integer,                  intent(in)            :: configunit
 
-    call self%get_parameter(self%k_d, 'k_d', 'day-1', 'dissolution rate', default=0.3_rk, scale_factor=1.0_rk/86400.0_rk)
+    call self%get_parameter(self%k_d, 'k_d', 'h-1', 'dissolution rate', default=0.3_rk, scale_factor=1.0_rk/3600.0_rk)
     
     ! we create a dependency for a coupling in fabm.yaml with the "base_model"
-    call self%register_state_dependency(self%id_p, 'p', 'mmolC m-3', 'particulate concentration') ! no need for vertical_movement, minimum_value or other things because it is register_state_DEPENDENCY (see base_model for the difference and the fabm.yaml file)
-    call self%register_state_dependency(self%id_d, 'd', 'mmolC m-3', 'dissolved concentration')
+    call self%register_state_dependency(self%id_p, 'p', 'molC m-3', 'particulate concentration') ! no need for vertical_movement, minimum_value or other things because it is register_state_DEPENDENCY (see base_model for the difference and the fabm.yaml file)
+    call self%register_state_dependency(self%id_d, 'd', 'molC m-3', 'dissolved concentration')
    
   end subroutine initialize
 

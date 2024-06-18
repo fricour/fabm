@@ -1,19 +1,19 @@
 #include "fabm_driver.h"
 
-module rbins_base_model
+module rbins_dp_model
    use fabm_types
 
    implicit none
 
    private
 
-   type, extends(type_base_model), public :: type_rbins_base_model ! it is a coincidence that I chose the same base_model as the type_base_model but it's not at all related...
+   type, extends(type_base_model), public :: type_rbins_dp_model
       type (type_state_variable_id) :: id_p, id_d  
       type (type_bottom_state_variable_id) :: id_p_benthos
       type (type_dependency_id) :: id_I_0
       type (type_diagnostic_variable_id) :: id_precip, id_dissol
       type (type_bottom_diagnostic_variable_id) :: id_dissol_benthos
-      real(rk) :: k_p, k_p_par, reminpart, burialpart, w_p, airconc, piston_velocity 
+      real(rk) :: k_p, k_p_par, k_d, reminpart, burialpart, w_p, airconc, piston_velocity 
    contains      
       procedure :: initialize
       procedure :: do
@@ -24,7 +24,7 @@ module rbins_base_model
 contains
 
   subroutine initialize(self, configunit)
-    class (type_rbins_base_model), intent(inout), target :: self
+    class (type_rbins_dp_model), intent(inout), target :: self
     integer,                  intent(in)            :: configunit
 
     real(rk), parameter :: secs_per_day = 86400.0_rk
@@ -32,7 +32,8 @@ contains
 
     ! parameters (always put a default value)
     call self%get_parameter(self%k_p, 'k_p', 'h-1', 'precipitation rate', default=0.006_rk, scale_factor=1.0_rk/secs_per_hour)
-    call self%get_parameter(self%k_p_par, 'k_p_par', '[h-1/(mumol photons/m^2/s)]', 'linear PAR dependency of precipitation rate', default=0.0000017_rk, scale_factor=1.0_rk/secs_per_hour)
+    call self%get_parameter(self%k_p_par, 'k_p_par', '[h-1/(mumol photons/m^2/s)]', 'linear PAR dependency of precipitation rate', default=0.00001_rk, scale_factor=1.0_rk/secs_per_hour)
+    call self%get_parameter(self%k_d, 'k_d', 'h-1', 'dissolution rate', default=0.3_rk, scale_factor=1.0_rk/secs_per_hour)
     call self%get_parameter(self%w_p, 'w_p', 'm day-1', 'vertical velocity (<0 for sinking)', default=-1.0_rk, scale_factor=1.0_rk/secs_per_day)
     call self%get_parameter(self%reminpart, 'reminpart', 'day-1', default=0.1_rk, scale_factor=1.0_rk/secs_per_day)
     call self%get_parameter(self%burialpart, 'burialpart', 'day-1', default=0.1_rk, scale_factor=1.0_rk/secs_per_day)
@@ -54,29 +55,36 @@ contains
   end subroutine initialize
 
   subroutine do(self, _ARGUMENTS_DO_)
-    class (type_rbins_base_model), intent(in) :: self
+    class (type_rbins_dp_model), intent(in) :: self
     _DECLARE_ARGUMENTS_DO_
 
-    real(rk) :: d, I_0
+    real(rk) :: d, p, I_0
     real(rk) :: conversion_factor = 4.6_rk ! conversion factor between W/m^2 and micromol photon/m^2/s  
-    real(rk) :: dissol, precip
+    real(rk) :: dissolution, precipitation
 
     _LOOP_BEGIN_
         _GET_(self%id_d, d)
+        _GET_(self%id_p, p)
         _GET_(self%id_I_0, I_0)
 
-        ! Send rates of change to FABM.
-        _ADD_SOURCE_(self%id_p, (self%k_p + self%k_p_par*I_0/conversion_factor)*d) ! we divide by a conversion factor to get back to micromol photon/m^2/s
-        _ADD_SOURCE_(self%id_d, -self%k_p*d)
+        ! precipitation 
+        precipitation = (self%k_p + self%k_p_par * I_0 / conversion_factor) * d ! we divide by a conversion factor to get back to micromol photon/m^2/s
 
-        _SET_DIAGNOSTIC_(self%id_dissol, -self%k_p*d) ! note: not entirely exact because we need the other part of the dissolution ! (see dissolution.f90) 
-        _SET_DIAGNOSTIC_(self%id_precip, (self%k_p + self%k_p_par*I_0/conversion_factor)*d)
+        ! dissolution 
+        dissolution = self%k_d * p
+
+        ! Send rates of change to FABM.
+        _ADD_SOURCE_(self%id_p, precipitation - dissolution)
+        _ADD_SOURCE_(self%id_d, dissolution - precipitation) 
+
+        _SET_DIAGNOSTIC_(self%id_dissol, conversion_factor) 
+        _SET_DIAGNOSTIC_(self%id_precip, conversion_factor)
 
     _LOOP_END_
   end subroutine do
 
   subroutine do_bottom(self, _ARGUMENTS_DO_BOTTOM_)
-     class (type_rbins_base_model), intent(in) :: self
+     class (type_rbins_dp_model), intent(in) :: self
      _DECLARE_ARGUMENTS_DO_BOTTOM_
 
      real(rk) :: p_benthos, p
@@ -86,16 +94,17 @@ contains
         _GET_(self%id_p, p)
            
         _ADD_BOTTOM_SOURCE_(self%id_p_benthos, -self%reminpart*p_benthos -self%burialpart*p_benthos - self%w_p*p) ! the last term impacts the content of the benthic state variable and the sign is "-" because self%w_p is negative 
-        _ADD_BOTTOM_FLUX_(self%id_p, -self%w_p*p) 
+        !_ADD_BOTTOM_FLUX_(self%id_p, -self%w_p*p) 
         _ADD_BOTTOM_FLUX_(self%id_d, self%reminpart*p_benthos)
 
-        _SET_BOTTOM_DIAGNOSTIC_(self%id_dissol_benthos, self%reminpart*p_benthos) 
+        !_SET_BOTTOM_DIAGNOSTIC_(self%id_dissol_benthos, self%reminpart) 
+        _SET_BOTTOM_DIAGNOSTIC_(self%id_dissol_benthos, p_benthos)
  
      _BOTTOM_LOOP_END_
   end subroutine do_bottom 
 
   subroutine do_surface(self, _ARGUMENTS_DO_SURFACE_)
-     class (type_rbins_base_model), intent(in) :: self
+     class (type_rbins_dp_model), intent(in) :: self
      _DECLARE_ARGUMENTS_DO_SURFACE_
 
      real(rk) :: d

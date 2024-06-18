@@ -1,7 +1,7 @@
 # see inspiration for coupling ("modularization") here: https://github.com/BoldingBruggeman/fabm-pisces/blob/master/testcases/fabm.yaml
 instances:
-  base_model:
-    model: rbins/base_model
+  dp_model:
+    model: rbins/dp_model
     initialization:
       p: 0.1 # concentration (molC m-3)
       d: 0.1 # concentration (molC m-3)
@@ -9,14 +9,15 @@ instances:
     parameters:
       w_p: -1.0 # sinking speed (m day-1), should be <0
       k_p: 0.006 # precipitation rate (h-1)
+      k_d: 0.003 # dissolution rate (h-1)
       reminpart: 0.1 # remineralization rate for benthic particulate substance (day-1)
-      burialpart: 0.1 # burial rate for benthic particulate substance (day-1)
+      burialpart: 0.0 # burial rate for benthic particulate substance (day-1)
       airconc: 0.02 # air concentration of dissolved (mol m-3)
-      piston_velocity: 0.1 # piston velocity (m day-1) 
-  dissolution:
-    model: rbins/dissolution
-    coupling:
-      p: base_model/p
-      d: base_model/d
-    parameters:
-      k_d: 0.0039 # dissolution rate (h-1)
+      piston_velocity: 0.0 # piston velocity (m day-1) 
+#  dissolution:
+#    model: rbins/dissolution
+#    coupling:
+#      p: base_model/p
+#      d: base_model/d
+#    parameters:
+#      k_d: 0.003 # dissolution rate (h-1)

@@ -14,7 +14,7 @@ module rbins_dp_model
       type (type_diagnostic_variable_id) :: id_precip, id_dissol
       type (type_bottom_diagnostic_variable_id) :: id_dissol_benthos
       real(rk) :: k_p, k_p_par, k_d, reminpart, burialpart, w_p, airconc, piston_velocity 
-   contains      
+   contains
       procedure :: initialize
       procedure :: do
       procedure :: do_bottom
@@ -33,7 +33,7 @@ contains
     ! parameters (always put a default value)
     call self%get_parameter(self%k_p, 'k_p', 'h-1', 'precipitation rate', default=0.006_rk, scale_factor=1.0_rk/secs_per_hour)
     call self%get_parameter(self%k_p_par, 'k_p_par', '[h-1/(mumol photons/m^2/s)]', 'linear PAR dependency of precipitation rate', default=0.00001_rk, scale_factor=1.0_rk/secs_per_hour)
-    call self%get_parameter(self%k_d, 'k_d', 'h-1', 'dissolution rate', default=0.3_rk, scale_factor=1.0_rk/secs_per_hour)
+    call self%get_parameter(self%k_d, 'k_d', 'h-1', 'dissolution rate', default=0.003_rk, scale_factor=1.0_rk/secs_per_hour)
     call self%get_parameter(self%w_p, 'w_p', 'm day-1', 'vertical velocity (<0 for sinking)', default=-1.0_rk, scale_factor=1.0_rk/secs_per_day)
     call self%get_parameter(self%reminpart, 'reminpart', 'day-1', default=0.1_rk, scale_factor=1.0_rk/secs_per_day)
     call self%get_parameter(self%burialpart, 'burialpart', 'day-1', default=0.1_rk, scale_factor=1.0_rk/secs_per_day)
@@ -77,8 +77,8 @@ contains
         _ADD_SOURCE_(self%id_p, precipitation - dissolution)
         _ADD_SOURCE_(self%id_d, dissolution - precipitation) 
 
-        _SET_DIAGNOSTIC_(self%id_dissol, conversion_factor) 
-        _SET_DIAGNOSTIC_(self%id_precip, conversion_factor)
+        _SET_DIAGNOSTIC_(self%id_dissol, dissolution) 
+        _SET_DIAGNOSTIC_(self%id_precip, precipitation) 
 
     _LOOP_END_
   end subroutine do
@@ -92,12 +92,19 @@ contains
      _BOTTOM_LOOP_BEGIN_
         _GET_HORIZONTAL_(self%id_p_benthos, p_benthos)
         _GET_(self%id_p, p)
-           
-        _ADD_BOTTOM_SOURCE_(self%id_p_benthos, -self%reminpart*p_benthos -self%burialpart*p_benthos - self%w_p*p) ! the last term impacts the content of the benthic state variable and the sign is "-" because self%w_p is negative 
-        !_ADD_BOTTOM_FLUX_(self%id_p, -self%w_p*p) 
-        _ADD_BOTTOM_FLUX_(self%id_d, self%reminpart*p_benthos)
 
-        !_SET_BOTTOM_DIAGNOSTIC_(self%id_dissol_benthos, self%reminpart) 
+        ! remineralization
+        remin = self%reminpart * p_benthos
+        
+        ! burial
+        burial = self%burialpart * p_benthos
+ 
+        ! sinking
+        sinking = self%w_p           
+ 
+        _ADD_BOTTOM_SOURCE_(self%id_p_benthos, -remin - burial - sinking) ! the last term impacts the content of the benthic state variable and the sign is "-" because self%w_p is negative 
+        _ADD_BOTTOM_FLUX_(self%id_d, burial)
+
         _SET_BOTTOM_DIAGNOSTIC_(self%id_dissol_benthos, p_benthos)
  
      _BOTTOM_LOOP_END_

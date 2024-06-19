@@ -12,7 +12,8 @@ module rbins_dp_model
       type (type_bottom_state_variable_id) :: id_p_benthos
       type (type_dependency_id) :: id_I_0
       type (type_diagnostic_variable_id) :: id_precip, id_dissol
-      type (type_bottom_diagnostic_variable_id) :: id_dissol_benthos
+      type (type_bottom_diagnostic_variable_id) :: id_dissol_benthos, id_bsfdiss, id_bsfpart, id_burial
+      type (type_surface_diagnostic_variable_id) :: id_asfdiss
       real(rk) :: k_p, k_p_par, k_d, reminpart, burialpart, w_p, airconc, piston_velocity 
    contains
       procedure :: initialize
@@ -49,6 +50,10 @@ contains
     call self%register_diagnostic_variable(self%id_dissol, 'dissol', 'mol m-3 s-1', 'dissolution rate')
     call self%register_diagnostic_variable(self%id_precip, 'precip', 'mol m-3 s-1', 'precipitation rate')
     call self%register_diagnostic_variable(self%id_dissol_benthos, 'dissol_benthos', 'mol m-2 s-1', 'benthic dissolution rate')
+    call self%register_diagnostic_variable(self%id_bsfdiss, 'bsfdiss', 'mol m-2 d-1', 'benthic flux part') ! units should be in SECONDS, not in DAYS 
+    call self%register_diagnostic_variable(self%id_bsfpart, 'bsfpart', 'mol m-2 d-1', 'benthic flux diss') ! units should be in SECONDS, not in DAYS
+    call self%register_diagnostic_variable(self%id_asfdiss, 'asfdiss', 'mol m-2 s-1', 'air-sea flux') ! check units in cofabm without FABM
+    call self%register_diagnostic_variable(self%id_burial, 'burial', 'mol m-2 s-1', 'burial rate')
  
     ! dependencies
     call self%register_dependency(self%id_I_0, standard_variables%downwelling_photosynthetic_radiative_flux) ! units in W/m^2 
@@ -87,7 +92,7 @@ contains
      class (type_rbins_dp_model), intent(in) :: self
      _DECLARE_ARGUMENTS_DO_BOTTOM_
 
-     real(rk) :: p_benthos, p
+     real(rk) :: p_benthos, p, remin, burial, sinking
 
      _BOTTOM_LOOP_BEGIN_
         _GET_HORIZONTAL_(self%id_p_benthos, p_benthos)
@@ -100,12 +105,16 @@ contains
         burial = self%burialpart * p_benthos
  
         ! sinking
-        sinking = self%w_p           
+        sinking = self%w_p * p        
  
         _ADD_BOTTOM_SOURCE_(self%id_p_benthos, -remin - burial - sinking) ! the last term impacts the content of the benthic state variable and the sign is "-" because self%w_p is negative 
-        _ADD_BOTTOM_FLUX_(self%id_d, burial)
+        _ADD_BOTTOM_FLUX_(self%id_d, remin)
 
-        _SET_BOTTOM_DIAGNOSTIC_(self%id_dissol_benthos, p_benthos)
+
+        _SET_BOTTOM_DIAGNOSTIC_(self%id_dissol_benthos, remin)
+        _SET_BOTTOM_DIAGNOSTIC_(self%id_bsfdiss, remin)
+        _SET_BOTTOM_DIAGNOSTIC_(self%id_bsfpart, sinking)
+        _SET_BOTTOM_DIAGNOSTIC_(self%id_burial, burial)
  
      _BOTTOM_LOOP_END_
   end subroutine do_bottom 
@@ -114,12 +123,16 @@ contains
      class (type_rbins_dp_model), intent(in) :: self
      _DECLARE_ARGUMENTS_DO_SURFACE_
 
-     real(rk) :: d
+     real(rk) :: d, surface_flux
 
      _SURFACE_LOOP_BEGIN_
        _GET_(self%id_d, d)
 
-       _ADD_SURFACE_FLUX_(self%id_d, -self%piston_velocity*(d - self%airconc)) 
+       surface_flux = self%piston_velocity * (d - self%airconc) 
+
+       _ADD_SURFACE_FLUX_(self%id_d, surface_flux) 
+
+      _SET_SURFACE_DIAGNOSTIC_(self%id_asfdiss, surface_flux)
  
      _SURFACE_LOOP_END_ 
 

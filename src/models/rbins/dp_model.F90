@@ -56,7 +56,7 @@ contains
     call self%register_diagnostic_variable(self%id_burial, 'burial', 'mol m-2 s-1', 'burial rate')
  
     ! dependencies
-    call self%register_dependency(self%id_I_0, standard_variables%downwelling_photosynthetic_radiative_flux) ! units in W/m^2 
+    call self%register_dependency(self%id_I_0, standard_variables%downwelling_photosynthetic_radiative_flux) ! units in W/m^2, check conversion factor in cofabm_Model.f90
   end subroutine initialize
 
   subroutine do(self, _ARGUMENTS_DO_)
@@ -107,9 +107,9 @@ contains
         ! sinking
         sinking = self%w_p * p        
  
-        _ADD_BOTTOM_SOURCE_(self%id_p_benthos, -remin - burial - sinking) ! the last term impacts the content of the benthic state variable and the sign is "-" because self%w_p is negative 
+        _ADD_BOTTOM_SOURCE_(self%id_p_benthos, -remin - burial - sinking) ! the last term impacts the content of the benthic state variable and the sign is "-" because self%w_p is negative (and it's a flux from the water to the bottom so it should be positive overall)
         _ADD_BOTTOM_FLUX_(self%id_d, remin)
-
+        _ADD_BOTTOM_FLUX_(self%id_p, sinking) ! needs to be < 0 overall (be careful with sign conventions between FABM and COHERENS)
 
         _SET_BOTTOM_DIAGNOSTIC_(self%id_dissol_benthos, remin)
         _SET_BOTTOM_DIAGNOSTIC_(self%id_bsfdiss, remin)

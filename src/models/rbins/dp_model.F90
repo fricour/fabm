@@ -102,7 +102,7 @@ contains
         remin = self%reminpart * p_benthos
         
         ! burial
-        burial = self%burialpart * p_benthos
+        burial = self%burialpart * p_benthos 
  
         ! sinking
         sinking = self%w_p * p        

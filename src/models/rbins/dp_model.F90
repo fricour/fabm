@@ -50,8 +50,8 @@ contains
     call self%register_diagnostic_variable(self%id_dissol, 'dissol', 'mol m-3 s-1', 'dissolution rate')
     call self%register_diagnostic_variable(self%id_precip, 'precip', 'mol m-3 s-1', 'precipitation rate')
     call self%register_diagnostic_variable(self%id_dissol_benthos, 'dissol_benthos', 'mol m-2 s-1', 'benthic dissolution rate')
-    call self%register_diagnostic_variable(self%id_bsfdiss, 'bsfdiss', 'mol m-2 d-1', 'benthic flux part') ! units should be in SECONDS, not in DAYS 
-    call self%register_diagnostic_variable(self%id_bsfpart, 'bsfpart', 'mol m-2 d-1', 'benthic flux diss') ! units should be in SECONDS, not in DAYS
+    call self%register_diagnostic_variable(self%id_bsfdiss, 'bsfdiss', 'mol m-2 d-1', 'benthic flux diss') ! units should be in SECONDS, not in DAYS 
+    call self%register_diagnostic_variable(self%id_bsfpart, 'bsfpart', 'mol m-2 d-1', 'benthic flux part') ! units should be in SECONDS, not in DAYS
     call self%register_diagnostic_variable(self%id_asfdiss, 'asfdiss', 'mol m-2 s-1', 'air-sea flux') ! check units in cofabm without FABM
     call self%register_diagnostic_variable(self%id_burial, 'burial', 'mol m-2 s-1', 'burial rate')
  
